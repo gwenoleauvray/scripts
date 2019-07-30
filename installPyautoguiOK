@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+sudo apt-get update
+
+sudo apt-get upgrade
+
+sudo apt install python3-pip
+
+pip3 install python3-xlib
+
+sudo apt-get install scrot
+
+sudo apt-get install python3-tk
+
+sudo apt-get install python3-dev
+
+pip3 install pyautogui
+
+

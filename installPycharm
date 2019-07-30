@@ -1,0 +1,6 @@
+#! /bin/bash
+sudo apt install snapd
+sudo apt install snapd-xdg-open
+sudo snap install pycharm-community --classic
+/snap/bin/pycharm-community
+

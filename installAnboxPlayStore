@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+
+sudo apt-get update
+sudo apt-get upgrade
+
+sudo apt install wget lzip unzip squashfs-tools
+
+sudo apt install snapd
