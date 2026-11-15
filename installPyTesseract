@@ -1,27 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Installe Tesseract OCR + pytesseract dans un venv.
+# Le code Python de démo est maintenant dans ai/ocr_ai.py (avec option IA).
+set -euo pipefail
 
-# install pytesseract
-#https://stackabuse.com/pytesseract-simple-python-optical-character-recognition/
+VENV="${VENV:-$HOME/.venvs/ocr}"
 
-pip install pipenv
-mkdir ocr_server && cd ocr_server && pipenv install --three
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng python3 python3-venv python3-pip
 
-pip install pillow
-pip install pytesseract
-pipenv shell
-pipenv install pytesseract Pillow
-try:
-    from PIL import Image
-except ImportError:
-    import Image
-import pytesseract
+python3 -m venv "$VENV"
+"$VENV/bin/pip" install --upgrade pip
+"$VENV/bin/pip" install --upgrade pillow pytesseract
 
-def ocr_core(filename):
-    """
-    This function will handle the core OCR processing of images.
-    """
-    text = pytesseract.image_to_string(Image.open(filename))  # We'll use Pillow's Image class to open the image and pytesseract to detect the string in the image
-    return text
-
-print(ocr_core('images/ocr_example_1.png'))
-
+tesseract --version | head -1
+echo "OK. Essai :  $VENV/bin/python ai/ocr_ai.py mon_image.png"

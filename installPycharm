@@ -1,6 +1,13 @@
-#! /bin/bash
-sudo apt install snapd
-sudo apt install snapd-xdg-open
-sudo snap install pycharm-community --classic
-/snap/bin/pycharm-community
+#!/usr/bin/env bash
+# Installe PyCharm via snap (Debian/Ubuntu).
+# Depuis la version 2025.3, le snap "pycharm-community" installe le PyCharm unifié
+# (gratuit, Jupyter inclus) : l'édition Community séparée n'existe plus.
+set -euo pipefail
 
+sudo apt-get update
+sudo apt-get install -y snapd
+# Debian : les snaps "classic" ont besoin du lien /snap
+[ -e /snap ] || sudo ln -s /var/lib/snapd/snap /snap
+
+sudo snap install pycharm-community --classic
+echo "Lancer avec : /snap/bin/pycharm-community (ou depuis le menu des applications)"

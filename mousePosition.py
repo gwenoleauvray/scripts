@@ -1,11 +1,16 @@
-#!/usr/bin/python3 
-import pyautogui, sys
-print('Press Ctrl-C to quit.')
+#!/usr/bin/env python3
+"""Affiche en continu la position de la souris (utile pour calibrer PyAutoGUI). Ctrl-C pour quitter."""
+import sys
+import time
+
+import pyautogui
+
+print("Ctrl-C pour quitter.")
 try:
     while True:
         x, y = pyautogui.position()
-        positionStr = 'X: ' + str(x).rjust(4) + ' Y: ' + str(y).rjust(4)
-        print(positionStr, end='')
-        print('\b' * len(positionStr), end='', flush=True)
+        print(f"\rX: {x:4d}  Y: {y:4d}", end="", flush=True)
+        time.sleep(0.05)  # évite de saturer le CPU
 except KeyboardInterrupt:
-    print('\n')
+    print()
+    sys.exit(0)
