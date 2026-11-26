@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
-# Installe Tesseract OCR + pytesseract dans un venv.
-# Le code Python de démo est maintenant dans ai/ocr_ai.py (avec option IA).
+# =============================================================================
+#  installPyTesseract — Installe la reconnaissance de texte Tesseract (OCR)
+#                       et son module Python pytesseract
+#
+#  Usage   : ./installPyTesseract
+#            VENV=~/autre/dossier ./installPyTesseract   (dossier du venv au choix)
+#  Manuel  : docs/installPyTesseract.md
+#
+#  Le code Python de démo est maintenant dans ai/ocr_ai.py (avec option IA).
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
 set -euo pipefail
 
+# Dossier de l'environnement virtuel : ~/.venvs/ocr sauf si VENV est fourni.
 VENV="${VENV:-$HOME/.venvs/ocr}"
 
+# 1. Paquets système : le moteur Tesseract, ses langues française et anglaise,
+#    et de quoi créer un environnement virtuel Python.
 sudo apt-get update
 sudo apt-get install -y tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng python3 python3-venv python3-pip
 
+# 2. Crée l'environnement virtuel et met pip à jour à l'intérieur.
 python3 -m venv "$VENV"
 "$VENV/bin/pip" install --upgrade pip
+
+# 3. Modules Python : pillow (ouvrir les images) et pytesseract (appeler Tesseract).
 "$VENV/bin/pip" install --upgrade pillow pytesseract
 
+# 4. Vérifie que Tesseract répond, puis indique comment faire un essai.
 tesseract --version | head -1
 echo "OK. Essai :  $VENV/bin/python ai/ocr_ai.py mon_image.png"

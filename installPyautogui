@@ -1,16 +1,38 @@
 #!/usr/bin/env bash
-# Installe PyAutoGUI dans un environnement virtuel (Debian 12+ interdit pip en global : PEP 668).
-# Fonctionne sous X11 uniquement (pas Wayland).
+# =============================================================================
+#  installPyautogui — Installe PyAutoGUI (pilotage souris/clavier en Python)
+#
+#  Usage   : ./installPyautogui
+#            VENV=~/autre/dossier ./installPyautogui   (dossier du venv au choix)
+#  Manuel  : docs/installPyautogui.md
+#
+#  Installe dans un environnement virtuel (Debian 12+ interdit pip en global : PEP 668).
+#  Fonctionne sous X11 uniquement (pas Wayland).
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
 set -euo pipefail
 
+# Dossier de l'environnement virtuel : ~/.venvs/pyautogui sauf si VENV est fourni.
 VENV="${VENV:-$HOME/.venvs/pyautogui}"
 
+# 1. Paquets système :
+#    python3-venv  -> pour créer l'environnement virtuel
+#    python3-tk    -> requis par certaines fonctions de PyAutoGUI
+#    python3-dev   -> en-têtes pour compiler des modules si besoin
+#    scrot         -> outil de capture d'écran utilisé par PyAutoGUI
 sudo apt-get update
 sudo apt-get install -y python3 python3-venv python3-pip python3-tk python3-dev scrot
 
+# 2. Crée l'environnement virtuel et met pip à jour à l'intérieur.
 python3 -m venv "$VENV"
 "$VENV/bin/pip" install --upgrade pip
+
+# 3. Installe PyAutoGUI et ses dépendances :
+#    python-xlib -> dialogue avec le serveur graphique X11
+#    pillow      -> traitement d'images (captures, recherche d'image à l'écran)
 "$VENV/bin/pip" install --upgrade pyautogui python-xlib pillow
 
+# 4. Rappel des commandes utiles.
 echo "OK. Activer :  source $VENV/bin/activate"
 echo "Position de la souris :  $VENV/bin/python mousePosition.py"
