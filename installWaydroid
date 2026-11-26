@@ -1,47 +1,66 @@
 #!/usr/bin/env bash
-# Android sous Linux avec Waydroid (remplace installAnboxPlayStore : Anbox est abandonné depuis 2023).
-# Prérequis : session Wayland et noyau avec binder. Fonctionne mal dans une VM VirtualBox :
-# préférez une machine physique ou un hôte KVM avec accélération GPU.
+# =============================================================================
+#  installWaydroid — Android sous Linux avec Waydroid
+#  (remplace installAnboxPlayStore : Anbox est abandonné depuis 2023)
+#
+#  Manuel : docs/installWaydroid.md
+#
+#  Prérequis : session Wayland et noyau avec binder. Fonctionne mal dans une VM VirtualBox :
+#  préférez une machine physique ou un hôte KVM avec accélération GPU.
 #
 #   ./installWaydroid                      installe seulement le paquet
 #   WAYDROID_INIT=1 ./installWaydroid      + télécharge Android (image sans Google)
 #   WAYDROID_INIT=1 WAYDROID_GAPPS=1 ./installWaydroid   + Google Play
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
 set -euo pipefail
 
+# 1. Lit le nom de code de la distribution (trixie, bookworm…) dans /etc/os-release.
 # shellcheck disable=SC1091
 . /etc/os-release
 codename="${VERSION_CODENAME:-}"
 
+# 2. Outils nécessaires pour télécharger en HTTPS.
 sudo apt-get update
 sudo apt-get install -y curl ca-certificates
 
+# 3. Installe Waydroid par la bonne méthode selon la version de Debian.
 case "$codename" in
   trixie)
     # Debian 13 : paquet disponible dans les backports
+    # (on ajoute le dépôt backports, puis on installe depuis celui-ci).
     echo "deb http://deb.debian.org/debian trixie-backports main" | sudo tee /etc/apt/sources.list.d/trixie-backports.list >/dev/null
     sudo apt-get update
     sudo apt-get install -y -t trixie-backports waydroid
     ;;
   forky|sid)
+    # Debian 14 et Debian « unstable » : paquet présent directement.
     sudo apt-get install -y waydroid
     ;;
   bookworm|bullseye)
     # Versions plus anciennes : dépôt tiers officiel waydro.id
+    # ⚠ Cette ligne télécharge un script et l'exécute en root : à relire avant.
     curl -fsS https://repo.waydro.id | sudo bash -s "$codename"
     sudo apt-get install -y waydroid
     ;;
   *)
+    # Toute autre distribution : arrêt avec un message d'erreur.
     echo "Distribution non gérée par ce script : '${codename}'. Voir https://docs.waydro.id" >&2
     exit 1
     ;;
 esac
 
+# 4. Facultatif : télécharge l'image Android et démarre le service.
 if [ "${WAYDROID_INIT:-0}" = "1" ]; then
   if [ "${WAYDROID_GAPPS:-0}" = "1" ]; then
+    # Image avec les services Google (Play Store).
     sudo waydroid init -s GAPPS -f
   else
+    # Image sans Google.
     sudo waydroid init -f
   fi
+  # Active le service Waydroid au démarrage et le lance tout de suite.
   sudo systemctl enable --now waydroid-container
   echo "Lancer :  waydroid session start  puis  waydroid show-full-ui"
 else

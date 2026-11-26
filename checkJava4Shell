@@ -10,6 +10,7 @@
 #  Seule écriture : le rapport texte dans /tmp.
 #
 #  Usage :  sudo bash checkJava4Shell
+#  Manuel : docs/checkJava4Shell.md
 #
 #  Sources des critères (vérifiées le 26/11/2026) :
 #   - Versions corrigées : 17.0.21.1, 21.0.13.1, 25.0.5.1, 27.0.1.1

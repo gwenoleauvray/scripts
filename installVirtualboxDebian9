@@ -1,9 +1,25 @@
 #!/bin/bash
+# =============================================================================
+#  installVirtualboxDebian9 — ANCIENNE VERSION, conservée pour mémoire
+#
+#  ⚠ OBSOLÈTE, À NE PAS LANCER sur une Debian récente :
+#    - vise Debian 9 « stretch », en fin de vie ;
+#    - installe VirtualBox 6.0, qui n'est plus maintenu ;
+#    - utilise apt-key, supprimé des Debian récentes ;
+#    - le dépôt est déclaré en http (non chiffré).
+#    -> Voir le dépôt GitHub « installVirtualbox ».
+#  Manuel : docs/installVirtualboxDebian9.md
+# =============================================================================
+
+# Met à jour la liste des paquets, puis tous les paquets (avec confirmation).
 sudo apt-get update
 sudo apt-get upgrade
 
+# Déclare le dépôt VirtualBox d'Oracle pour Debian 9 « stretch ».
 echo "deb http://download.virtualbox.org/virtualbox/debian stretch contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
+# Ajoute les clés de signature d'Oracle (méthode apt-key, dépréciée).
 wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
 wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+# Recharge la liste des paquets et installe VirtualBox 6.0.
 sudo apt-get update
 sudo apt-get install virtualbox-6.0

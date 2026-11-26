@@ -1,8 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# =============================================================================
+#  configPyautogui — BROUILLON, conservé pour mémoire
+#
+#  ⚠ NE FONCTIONNE PAS : la ligne « pip3 install pyautogui » est une commande
+#    shell, pas du Python. Lancé avec python, ce fichier s'arrête sur une
+#    erreur de syntaxe.
+#    -> Pour installer PyAutoGUI : ./installPyautogui
+#    -> Pour lire la position de la souris : mousePosition.py
+#  Manuel : docs/configPyautogui.md
+# =============================================================================
 
 
+# Commande shell placée ici par erreur (cause de l'erreur de syntaxe).
 pip3 install pyautogui
+# Idées d'essai laissées en commentaire :
+#   afficher la position de la souris :
 #print(pyautogui.position())
+#   taper un texte au clavier (parenthèse fermante manquante) :
 #pyautogui.typewrite("Hello World!"
+#   appuyer sur Entrée (la bonne syntaxe est pyautogui.press("enter")) :
 #pyautogui.typewrite([enter])

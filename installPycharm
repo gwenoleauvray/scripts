@@ -1,13 +1,29 @@
 #!/usr/bin/env bash
-# Installe PyCharm via snap (Debian/Ubuntu).
-# Depuis la version 2025.3, le snap "pycharm-community" installe le PyCharm unifié
-# (gratuit, Jupyter inclus) : l'édition Community séparée n'existe plus.
+# =============================================================================
+#  installPycharm — Installe l'éditeur Python PyCharm via snap (Debian/Ubuntu)
+#
+#  Usage   : ./installPycharm
+#  Manuel  : docs/installPycharm.md
+#
+#  Depuis la version 2025.3, le snap "pycharm-community" installe le PyCharm unifié
+#  (gratuit, Jupyter inclus) : l'édition Community séparée n'existe plus.
+# =============================================================================
+
+# Arrêt immédiat à la première erreur (-e), sur variable non définie (-u)
+# ou si une commande échoue au milieu d'un tube (pipefail).
 set -euo pipefail
 
+# 1. Met à jour la liste des paquets puis installe snapd, le gestionnaire de snaps.
 sudo apt-get update
 sudo apt-get install -y snapd
-# Debian : les snaps "classic" ont besoin du lien /snap
+
+# 2. Debian : les snaps "classic" ont besoin du lien /snap
+#    (créé seulement s'il n'existe pas déjà).
 [ -e /snap ] || sudo ln -s /var/lib/snapd/snap /snap
 
+# 3. Installe PyCharm. « --classic » lui donne accès à tout le système de fichiers,
+#    nécessaire pour un éditeur de code.
 sudo snap install pycharm-community --classic
+
+# 4. Indique comment le lancer.
 echo "Lancer avec : /snap/bin/pycharm-community (ou depuis le menu des applications)"

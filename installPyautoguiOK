@@ -1,19 +1,36 @@
 #!/usr/bin/env bash
+# =============================================================================
+#  installPyautoguiOK — ANCIENNE VERSION, conservée pour mémoire
+#
+#  ⚠ OBSOLÈTE : utiliser plutôt « installPyautogui ».
+#    - « pip3 install » en global est refusé sur Debian 12+ (PEP 668) ;
+#    - le paquet pip « python3-xlib » n'existe pas (le bon nom est « python-xlib ») ;
+#    - le script continue même après une erreur.
+#  Manuel : docs/installPyautoguiOK.md
+# =============================================================================
 
+# Met à jour la liste des paquets.
 sudo apt-get update
 
+# Met à jour TOUS les paquets du système (demande une confirmation).
 sudo apt-get upgrade
 
+# Installe pip pour Python 3.
 sudo apt install python3-pip
 
+# Tente d'installer xlib (nom de paquet erroné, échoue).
 pip3 install python3-xlib
 
+# Outil de capture d'écran utilisé par PyAutoGUI.
 sudo apt-get install scrot
 
+# Interface Tk, requise par certaines fonctions de PyAutoGUI.
 sudo apt-get install python3-tk
 
+# En-têtes de développement Python.
 sudo apt-get install python3-dev
 
+# Installe PyAutoGUI en global (refusé sur Debian 12+).
 pip3 install pyautogui
 
 

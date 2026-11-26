@@ -5,6 +5,8 @@ Install scripts for a PyAutoGUI / OCR / Android Debian VM, plus Claude-powered h
 
 **Relisez les scripts avant de les lancer — aucune garantie.** / Please review scripts before use. No warranty.
 
+📖 **Manuels en français pour chaque script : [docs/](docs/README.md)**
+
 | Script | Rôle |
 |---|---|
 | `installPyautogui` | PyAutoGUI dans un venv (`~/.venvs/pyautogui`) — X11 uniquement |
@@ -29,8 +31,8 @@ export ANTHROPIC_API_KEY="sk-ant-..."        # clé API Anthropic
 ⚠ Les fonctions IA envoient le contenu du script / du texte / de l'image à l'API Anthropic. `verify_script.py` refuse d'envoyer un fichier qui semble contenir un secret.
 
 ## Ce qui a changé par rapport à la v1
-- Doublons supprimés : `installPycharm1`, `installPyautoguiOK` (identiques aux originaux)
+- Anciennes versions `installPycharm1` et `installPyautoguiOK` conservées pour mémoire et marquées obsolètes (voir [docs/](docs/README.md))
 - `pip3 install python3-xlib` (paquet inexistant sous pip) → `python-xlib`, et installation en venv (Debian 12+ bloque pip en global, PEP 668)
 - `installPyTesseract` : mélangeait bash et Python, et n'installait pas le binaire `tesseract` → corrigé
 - `installAnboxPlayStore` (inachevé, Anbox abandonné) → `installWaydroid`
-- `configPyautogui` (bash/Python mélangés) et `installVirtualboxDebian9` (Debian 9 en fin de vie ; voir le dépôt `installVirtualbox`) supprimés
+- `configPyautogui` (bash/Python mélangés) et `installVirtualboxDebian9` (Debian 9 en fin de vie ; voir le dépôt `installVirtualbox`) conservés pour mémoire, marqués obsolètes
