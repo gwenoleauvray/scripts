@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  installAndroidKVM — Prépare la virtualisation KVM et crée une machine
+#                      virtuelle Android à partir d'une image ISO
+#
+#  Usage   : ./installAndroidKVM                       installe KVM seulement
+#            ./installAndroidKVM ~/Téléchargements/android.iso   + crée la VM
+#            VM_NAME=android VM_RAM=4096 VM_CPUS=2 VM_DISK=16 ./installAndroidKVM image.iso
+#  Manuel  : docs/installAndroidKVM.md
+#
+#  Complément de « installWaydroid » : Android tourne ici dans une vraie
+#  machine virtuelle, utile quand Waydroid n'est pas possible (session X11,
+#  noyau sans binder). L'image ISO Android x86-64 (Bliss OS, Android-x86…)
+#  est à télécharger soi-même : le script ne télécharge aucune image.
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
+set -euo pipefail
+
+ISO="${1:-}"
+VM_NAME="${VM_NAME:-android}"
+VM_RAM="${VM_RAM:-4096}"     # mémoire en Mo
+VM_CPUS="${VM_CPUS:-2}"      # nombre de processeurs
+VM_DISK="${VM_DISK:-16}"     # disque en Go
+UTILISATEUR="${SUDO_USER:-$USER}"
+IMAGES=/var/lib/libvirt/images
+
+# 1. Vérifications : processeur x86-64 avec virtualisation matérielle.
+if [ "$(uname -m)" != "x86_64" ]; then
+  echo "Ce script vise les PC x86-64 (processeur actuel : $(uname -m))." >&2
+  exit 1
+fi
+if ! grep -Eqw 'vmx|svm' /proc/cpuinfo; then
+  echo "La virtualisation matérielle (Intel VT-x / AMD-V) est absente ou désactivée." >&2
+  echo "L'activer dans le BIOS/UEFI, puis relancer." >&2
+  exit 1
+fi
+if [ -n "$ISO" ] && [ ! -f "$ISO" ]; then
+  echo "Image introuvable : $ISO" >&2
+  exit 1
+fi
+
+# 2. Installation de KVM, libvirt (gestion des VM) et virt-manager (interface).
+sudo apt-get update
+sudo apt-get install -y qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients virtinst virt-manager
+
+# 3. Droits : l'utilisateur pourra gérer les VM sans sudo (après reconnexion).
+sudo usermod -aG libvirt,kvm "$UTILISATEUR"
+
+# 4. Réseau virtuel « default » : démarré maintenant et à chaque démarrage.
+if ! sudo virsh net-info default 2>/dev/null | grep -Eq '^Active:\s+yes'; then
+  sudo virsh net-start default
+fi
+sudo virsh net-autostart default >/dev/null
+
+# Sans image : on s'arrête ici.
+if [ -z "$ISO" ]; then
+  echo "OK : KVM est prêt. Se déconnecter puis se reconnecter pour les nouveaux droits."
+  echo "Pour créer la VM Android :  ./installAndroidKVM chemin/vers/android-x86_64.iso"
+  exit 0
+fi
+
+# 5. Refus d'écraser une VM du même nom.
+if sudo virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
+  echo "Une VM nommée « $VM_NAME » existe déjà. Choisir un autre nom : VM_NAME=android2 $0 $ISO" >&2
+  exit 1
+fi
+
+# 6. Copie de l'image dans le dossier de libvirt : le service qui fait tourner
+#    les VM ne peut pas lire les fichiers du dossier personnel.
+CIBLE="$IMAGES/$(basename "$ISO")"
+[ -f "$CIBLE" ] || sudo cp "$ISO" "$CIBLE"
+
+# Type de système : « --osinfo » existe depuis virt-install 4 (Debian 12) ;
+# Debian 11 n'a que l'ancienne option « --os-variant ».
+AIDE="$(virt-install --help 2>&1 || true)"
+# La virgule de « detect=on,require=off » fait partie de l'option (pas un séparateur).
+# shellcheck disable=SC2054
+case "$AIDE" in
+  *--osinfo*) OS_OPT=(--osinfo detect=on,require=off) ;;
+  *)          OS_OPT=(--os-variant generic) ;;
+esac
+
+# 7. Création de la VM. Elle démarre sur l'image ISO : l'installation d'Android
+#    se fait ensuite dans la fenêtre de la VM.
+sudo virt-install --connect qemu:///system \
+  --name "$VM_NAME" \
+  --memory "$VM_RAM" --vcpus "$VM_CPUS" \
+  --disk size="$VM_DISK",format=qcow2 \
+  --cdrom "$CIBLE" \
+  "${OS_OPT[@]}" \
+  --graphics spice --video virtio \
+  --noautoconsole
+
+echo "OK : VM « $VM_NAME » créée et démarrée."
+echo "L'ouvrir :  virt-manager   (double-clic sur « $VM_NAME »)"
