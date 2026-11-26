@@ -11,6 +11,7 @@ Install scripts for a PyAutoGUI / OCR / Android Debian VM, plus Claude-powered h
 | `installPyTesseract` | Tesseract OCR (fra+eng) + pytesseract dans un venv (`~/.venvs/ocr`) |
 | `installPycharm` | PyCharm via snap (le snap `pycharm-community` installe désormais le PyCharm unifié) |
 | `installWaydroid` | Android sous Linux (remplace Anbox, abandonné en 2023) |
+| `checkJava4Shell` | Sécurité : cherche Java4Shell (CVE-2026-114938) sur toute la machine — versions de Java, processeur, plantages, traces d'attaque. Lecture seule, `sudo bash checkJava4Shell` |
 | `mousePosition.py` | Affiche la position de la souris pour calibrer PyAutoGUI |
 | `ai/verify_script.py` | **IA** : relit un script shell (analyse locale + revue Claude) avant exécution |
 | `ai/ocr_ai.py` | **IA** : OCR Tesseract, correction par Claude (`--clean`) ou lecture directe de l'image (`--vision`) |
