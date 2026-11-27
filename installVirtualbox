@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  installVirtualbox — Installe VirtualBox depuis le dépôt officiel d'Oracle
+#                      (Debian 11, 12, 13 ; Ubuntu 22.04 à 25.10 ; PC x86-64)
+#
+#  Usage   : ./installVirtualbox
+#            VBOX_VERSION=7.1 ./installVirtualbox   (autre branche que 7.2)
+#  Manuel  : docs/installVirtualbox.md
+#
+#  Remplace l'ancien installVirtualboxDebian9 : clé vérifiée par son empreinte
+#  et rangée avec « signed-by » (plus d'apt-key), dépôt en HTTPS.
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
+set -euo pipefail
+
+VBOX_VERSION="${VBOX_VERSION:-7.2}"
+UTILISATEUR="${SUDO_USER:-$USER}"
+CLE_URL="https://www.virtualbox.org/download/oracle_vbox_2016.asc"
+# Empreinte officielle de la clé Oracle 2016 : on refuse toute autre clé.
+EMPREINTE="B9F8D658297AF3EFC18D5CDFA2F683C52980AECF"
+TROUSSEAU=/usr/share/keyrings/oracle-virtualbox-2016.gpg
+DEPOT=/etc/apt/sources.list.d/virtualbox.list
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# 1. Vérifications : PC x86-64 et version de système publiée par Oracle.
+if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+  echo "Oracle ne publie VirtualBox que pour les PC x86-64 (amd64)." >&2
+  exit 1
+fi
+# shellcheck disable=SC1091
+. /etc/os-release
+CODENAME="${VERSION_CODENAME:-}"
+case "$CODENAME" in
+  trixie|bookworm|bullseye|questing|plucky|noble|jammy) ;;
+  *) echo "Système « $CODENAME » non publié par Oracle. Voir https://www.virtualbox.org/wiki/Linux_Downloads" >&2
+     exit 1 ;;
+esac
+
+# 2. Conflit : le paquet « virtualbox » de la distribution ne doit pas être présent.
+if dpkg -s virtualbox >/dev/null 2>&1; then
+  echo "Le paquet « virtualbox » de la distribution est installé. Le retirer d'abord :" >&2
+  echo "  sudo apt remove virtualbox" >&2
+  exit 1
+fi
+
+# 3. Outils, et de quoi compiler le module noyau de VirtualBox (vboxdrv).
+sudo apt-get update
+sudo apt-get install -y curl ca-certificates gpg gcc make perl
+sudo apt-get install -y "linux-headers-$(uname -r)" \
+  || echo "⚠ En-têtes du noyau $(uname -r) introuvables : installer ceux de votre noyau, puis : sudo /sbin/vboxconfig"
+
+# 4. Clé de signature d'Oracle : téléchargée, puis vérifiée par son empreinte.
+curl -fsSL "$CLE_URL" -o "$TMP/oracle.asc"
+TROUVEE="$(gpg --show-keys --with-colons "$TMP/oracle.asc" | awk -F: '/^fpr:/ {print $10; exit}')"
+if [ "$TROUVEE" != "$EMPREINTE" ]; then
+  echo "ERREUR : la clé téléchargée n'a pas l'empreinte attendue ($TROUVEE). Installation annulée." >&2
+  exit 1
+fi
+sudo gpg --dearmor --yes -o "$TROUSSEAU" "$TMP/oracle.asc"
+echo "Clé Oracle vérifiée."
+
+# 5. Déclaration du dépôt, limitée à cette clé (remplace l'ancien fichier
+#    « stretch » laissé par installVirtualboxDebian9, s'il existe).
+echo "deb [arch=amd64 signed-by=$TROUSSEAU] https://download.virtualbox.org/virtualbox/debian $CODENAME contrib" \
+  | sudo tee "$DEPOT" >/dev/null
+
+# 6. Installation.
+sudo apt-get update
+sudo apt-get install -y "virtualbox-$VBOX_VERSION"
+
+# 7. Droits : accès aux périphériques USB dans les VM (après reconnexion).
+sudo usermod -aG vboxusers "$UTILISATEUR"
+
+# 8. Secure Boot actif : le module noyau doit être signé, sinon les VM ne démarrent pas.
+if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi enabled; then
+  echo "⚠ Secure Boot est actif : le module vboxdrv doit être signé. Voir docs/installVirtualbox.md."
+fi
+
+echo "OK : VirtualBox $VBOX_VERSION installé. Se déconnecter puis se reconnecter."
+echo "Lancer :  virtualbox   (ou depuis le menu des applications)"

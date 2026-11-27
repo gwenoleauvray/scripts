@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  updatePyautogui — Met à jour PyAutoGUI et ses dépendances
+#
+#  Usage   : ./updatePyautogui
+#            VENV=~/autre/dossier ./updatePyautogui   (si installé ailleurs)
+#  Manuel  : docs/updatePyautogui.md
+#
+#  Travaille dans l'environnement virtuel créé par « installPyautogui ».
+#  Ne touche pas aux paquets du système et ne demande pas sudo.
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
+set -euo pipefail
+
+# Même dossier par défaut que installPyautogui.
+VENV="${VENV:-$HOME/.venvs/pyautogui}"
+MODULES=(pyautogui python-xlib pillow)
+
+# 1. L'environnement doit exister.
+if [ ! -x "$VENV/bin/python" ]; then
+  echo "Aucun environnement PyAutoGUI dans $VENV." >&2
+  echo "Lancer d'abord :  ./installPyautogui" >&2
+  exit 1
+fi
+
+# Affiche la version installée de chaque module (ou « absent »).
+versions() {
+  "$VENV/bin/python" -I - "${MODULES[@]}" <<'EOF'
+import sys
+from importlib.metadata import version, PackageNotFoundError
+for nom in sys.argv[1:]:
+    try:
+        print(f"  {nom:12} {version(nom)}")
+    except PackageNotFoundError:
+        print(f"  {nom:12} absent")
+EOF
+}
+
+# 2. Versions avant la mise à jour.
+echo "Avant :"
+versions
+
+# 3. Mise à jour de pip, puis des modules.
+"$VENV/bin/pip" install --quiet --upgrade pip
+"$VENV/bin/pip" install --quiet --upgrade "${MODULES[@]}"
+
+# 4. Versions après, et contrôle que les dépendances sont cohérentes.
+echo "Après :"
+versions
+"$VENV/bin/pip" check
+echo "OK : PyAutoGUI est à jour."

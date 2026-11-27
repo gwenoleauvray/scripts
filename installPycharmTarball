@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  installPycharmTarball — Installe PyCharm SANS snap, depuis l'archive
+#                          officielle JetBrains (.tar.gz)
+#
+#  Usage   : ./installPycharmTarball
+#            INSTALL_DIR=/autre/dossier ./installPycharmTarball
+#  Manuel  : docs/installPycharmTarball.md
+#
+#  Pour qui : ceux qui ne veulent pas de snap (voir « installPycharm » pour
+#  la version snap). Relancer le script met PyCharm à jour.
+#  À lancer en utilisateur normal : sudo est demandé seulement quand il faut.
+# =============================================================================
+
+# Arrêt immédiat à la première erreur, sur variable non définie, ou dans un tube.
+set -euo pipefail
+
+# Dossier d'installation (FHS recommande /opt) et adresse de l'API JetBrains
+# qui donne la dernière version publiée (code produit PCP = PyCharm unifié).
+INSTALL_DIR="${INSTALL_DIR:-/opt}"
+API="https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release"
+
+# Dossier temporaire, supprimé automatiquement à la fin (même en cas d'erreur).
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# 1. Choix de l'archive selon le processeur.
+case "$(uname -m)" in
+  x86_64)  CLE="linux" ;;
+  aarch64) CLE="linuxARM64" ;;
+  *) echo "Processeur $(uname -m) non pris en charge par PyCharm." >&2; exit 1 ;;
+esac
+
+# 2. Dépendances : outils de téléchargement, et bibliothèques graphiques
+#    listées par JetBrains dans son guide d'installation.
+sudo apt-get update
+sudo apt-get install -y curl ca-certificates python3 tar \
+  libxi6 libxrender1 libxtst6 mesa-utils libfontconfig1 libgtk-3-bin dbus-user-session
+
+# 3. Demande à JetBrains la dernière version : on lit le numéro, le lien de
+#    l'archive et le lien de son empreinte SHA-256 dans la réponse JSON.
+curl -fsSL "$API" -o "$TMP/release.json"
+read -r VERSION LIEN LIEN_SHA < <(python3 -I -c '
+import json, sys
+r = json.load(open(sys.argv[1]))["PCP"][0]
+d = r["downloads"][sys.argv[2]]
+print(r["version"], d["link"], d["checksumLink"])
+' "$TMP/release.json" "$CLE")
+# Si la réponse n'a pas la forme attendue, les variables sont vides : on arrête.
+if [ -z "${LIEN_SHA:-}" ]; then
+  echo "Réponse inattendue de JetBrains. Télécharger à la main : https://www.jetbrains.com/pycharm/download/" >&2
+  exit 1
+fi
+DEST="$INSTALL_DIR/pycharm-$VERSION"
+echo "Dernière version : PyCharm $VERSION"
+
+# Déjà installée ? Rien à faire.
+if [ -d "$DEST" ]; then
+  echo "PyCharm $VERSION est déjà installé dans $DEST."
+  exit 0
+fi
+
+# 4. Téléchargement de l'archive et de son empreinte.
+echo "Téléchargement de $LIEN…"
+curl -fL --progress-bar "$LIEN" -o "$TMP/pycharm.tar.gz"
+curl -fsSL "$LIEN_SHA" -o "$TMP/pycharm.sha256"
+
+# 5. Vérification de l'empreinte : si l'archive a été abîmée ou modifiée
+#    pendant le téléchargement, on arrête tout.
+ATTENDU="$(cut -d' ' -f1 < "$TMP/pycharm.sha256")"
+OBTENU="$(sha256sum "$TMP/pycharm.tar.gz" | cut -d' ' -f1)"
+if [ "$ATTENDU" != "$OBTENU" ]; then
+  echo "ERREUR : l'empreinte SHA-256 ne correspond pas. Installation annulée." >&2
+  exit 1
+fi
+echo "Empreinte SHA-256 vérifiée."
+
+# 6. Décompression dans /opt/pycharm-<version>.
+#    --strip-components=1 retire le dossier racine de l'archive.
+sudo mkdir -p "$DEST"
+sudo tar -xzf "$TMP/pycharm.tar.gz" -C "$DEST" --strip-components=1
+
+# 7. Lanceur : selon les versions, il s'appelle « pycharm » ou « pycharm.sh ».
+if [ -x "$DEST/bin/pycharm" ]; then LANCEUR="$DEST/bin/pycharm"; else LANCEUR="$DEST/bin/pycharm.sh"; fi
+# Commande « pycharm » disponible partout (lien remplacé à chaque mise à jour).
+sudo ln -sfn "$LANCEUR" /usr/local/bin/pycharm
+
+# 8. Entrée dans le menu des applications, pour l'utilisateur courant.
+ICONE="$DEST/bin/pycharm.svg"
+[ -f "$ICONE" ] || ICONE="$DEST/bin/pycharm.png"
+mkdir -p "$HOME/.local/share/applications"
+cat > "$HOME/.local/share/applications/jetbrains-pycharm.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=PyCharm
+Comment=Éditeur Python (JetBrains)
+Exec=/usr/local/bin/pycharm %f
+Icon=$ICONE
+Terminal=false
+Categories=Development;IDE;
+StartupWMClass=jetbrains-pycharm
+EOF
+
+# 9. Signale les anciennes versions qui restent sur le disque.
+for ANCIEN in "$INSTALL_DIR"/pycharm-*; do
+  [ "$ANCIEN" = "$DEST" ] || [ ! -d "$ANCIEN" ] || echo "Ancienne version encore présente : $ANCIEN (supprimable avec sudo rm -rf)"
+done
+
+echo "OK : PyCharm $VERSION installé dans $DEST."
+echo "Lancer :  pycharm   (ou depuis le menu des applications)"
